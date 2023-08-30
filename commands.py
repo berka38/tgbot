@@ -1,22 +1,28 @@
 from telegram import *
 from telegram.ext import *
+import pymongo
+
+client = pymongo.MongoClient("mongodb+srv://bertkrc:jrsTA1JyDRKXw1IQ@cluster0.t4gqhpn.mongodb.net/?retryWrites=true&w=majority")  # MongoDB sunucu adresini ve portunu buraya girin
+database = client["folglad"]  # Kullanmak istediğiniz veritabanını seçin
+reporstdb = database["reports"]  # Kullanmak istediğiniz koleksiyonu seçin
+admindb = database["admins"]  
+ownerdb = database["owners"]
 
 şikayetler = [
 
 ]
 
-kurucu = "1316760864"
 
-admins = [123123123123 ,1316760864, 2131231231,13123213123,12312312312312]
 
 
 
 
 
 def check_sikayetler(context: CallbackContext) -> None:
-    for sikayet in şikayetler:
-        if sikayet["cevaplanma"] == 1 and sikayet["sikayetBildiri"] == 0:
-            context.bot.send_message(chat_id=sikayet["chatId"], 
+        results = reporstdb.find({"$and":[{"cevaplanma":1}, {"sikayetBildiri":0}]})
+        for result in results:
+            print(result)
+            context.bot.send_message(chat_id=result["chatId"], 
             text="""
             selam {}, dostum
             gönderdiğin,
@@ -24,14 +30,16 @@ def check_sikayetler(context: CallbackContext) -> None:
             şikayeti incelenip değerlendirilmiştir.
 
             {},
-            """.format(sikayet["gonderen"], sikayet["sikayet"], sikayet["cevapMesaj"]), reply_to_message_id=sikayet["mesajId"])
-            sikayet["sikayetBildiri"] = 1
+            """.format(result["gonderen"], result["sikayet"], result["cevapMesaj"]), reply_to_message_id=result["mesajId"])
+        reporstdb.update_many({"$and":[{"cevaplanma":1}, {"sikayetBildiri":0}]}, {"$set":{"sikayetBildiri": 1}})
     
 def tekrar_mesaj(context: CallbackContext) -> None:
-    
-    kekec = "Selam dostum ben bir destek botuyum grupla yada üyelerle ilgili herhangi bir şikayet öneri ve talep için /sikayet mesajınız şeklinde istediğiniz öneri ve şikayeti yazabilirsiniz, daha detaylı bilgi için /yardım"
-    
-    context.bot.send_message(chat_id="-1001554994271", text=kekec)
+    try:  
+        kekec = "Selam dostum ben bir destek botuyum grupla yada üyelerle ilgili herhangi bir şikayet öneri ve talep için /sikayet mesajınız şeklinde istediğiniz öneri ve şikayeti yazabilirsiniz, daha detaylı bilgi için /yardım"
+        
+        context.bot.send_message(chat_id="-1001554994271", text=kekec)
+    except:
+        print("gruba mesaj atamıyor")
 
 
 def yardim(update: Update, context: CallbackContext) -> None:
@@ -52,7 +60,7 @@ def yardim(update: Update, context: CallbackContext) -> None:
 
 
 def sikayetkapat(update: Update, context: CallbackContext) -> None:
-    if update.message.from_user.id in admins:
+    if admindb.find_one({"id": update.message.from_user.id}):
         try:
             komut, id_str, *yeni_mesaj_parcalari = update.message.text.split(maxsplit=2)
 
@@ -60,11 +68,9 @@ def sikayetkapat(update: Update, context: CallbackContext) -> None:
                 
             yeni_mesaj = " ".join(yeni_mesaj_parcalari)
 
-            for sikayet in şikayetler:
-                if sikayet["id"] == id_num:
-                    sikayet["cevapMesaj"] = yeni_mesaj_parcalari
-                    sikayet["cevaplanma"] = 1
-                    update.message.reply_text("Şikayet başarıyla kapatılmıştır")
+            reporstdb.update_many({"id":id_num}, {"$set":{"cevapMesaj": yeni_mesaj}})
+            reporstdb.update_many({"id":id_num}, {"$set":{"cevaplanma": 1}})
+            update.message.reply_text("Şikayet başarıyla kapatılmıştır")
 
         except (ValueError, IndexError):
             update.message.reply_text("Geçersiz komut. Doğru format: /kapat id mesaj")
@@ -75,22 +81,21 @@ def sikayetkapat(update: Update, context: CallbackContext) -> None:
 
 
 def sikayetal(update: Update, context: CallbackContext) -> None:
-    print(admins)
-    if update.message.from_user.id in admins:
+    if admindb.find_one({"id": update.message.from_user.id}):
         try:
             komut, *args = update.message.text.split()
             
             if len(args) == 0:
                 # Eğer hiç argüman verilmediyse, tüm listeyi göster
-                for sikayet in şikayetler:
-                    if sikayet["cevaplanma"] == 0:
-                        context.bot.send_message(chat_id=update.message.chat_id, text="[{}] - {}".format(sikayet["id"],sikayet["sikayet"]))
+                result = reporstdb.find({"cevaplanma":0})
+                for i in result:
+                    context.bot.send_message(chat_id=update.message.chat_id, text="[{}] - {}".format(i["id"],i["sikayet"]))
 
             else:
                 # Argüman olarak bir id verildiyse, sadece o id'ye sahip elemanı göster
                 id_num = int(args[0])
-                for sikayet in şikayetler:
-                    if sikayet["id"] == id_num:
+                result = reporstdb.find({"$and":[{"cevaplanma":0},{"id":id_num}]})
+                for i in result:
                         kekec = """
                             şikayet id: {0},
                             şikayetçi: {1}
@@ -102,7 +107,7 @@ def sikayetal(update: Update, context: CallbackContext) -> None:
                             mesaj id: {3}
                             chat id: {2}
                             
-                            """.format(sikayet["id"],sikayet["gonderen"],sikayet["chatId"],sikayet["mesajId"],sikayet["sikayet"])
+                            """.format(i["id"],i["gonderen"],i["chatId"],i["mesajId"],i["sikayet"])
                         context.bot.send_message(chat_id=update.message.chat_id ,text=kekec)
         except ValueError:
             update.message.reply_text("Geçersiz komut. Doğru format: /liste [id]")
@@ -111,8 +116,7 @@ def sikayetal(update: Update, context: CallbackContext) -> None:
 
 def sikayet(update: Update,context: CallbackContext) -> None:
 
-    sirket = len(şikayetler)
-    id = int(sirket) + 1
+    id = reporstdb.count_documents({}) + 1
     message = update.message.text[9:]
     messageId = update.message.message_id
     chatId = update.message.chat.id    
@@ -121,8 +125,7 @@ def sikayet(update: Update,context: CallbackContext) -> None:
     sikayetBildiri = 0
     cevapMesaj = ""
 
-    şikayetler.append(
-        {
+    şikayet = {
             "id":id,
             "gonderen": gonderen,
             "chatId": chatId,
@@ -132,7 +135,8 @@ def sikayet(update: Update,context: CallbackContext) -> None:
             "cevapMesaj": cevapMesaj,
             "sikayetBildiri": sikayetBildiri
         }
-    )
+    reporstdb.insert_one(şikayet)
+    
 
 
     update.message.reply_text("Şikayetiniz başarıyla oluşturuldu")
@@ -140,7 +144,8 @@ def sikayet(update: Update,context: CallbackContext) -> None:
 
 def adminekle(update: Update,context: CallbackContext) -> None:
     print(update.message.from_user.id)
-    if update.message.from_user.id == int(kurucu):
+    
+    if ownerdb.find_one({"id": update.message.from_user.id}):
         print("kurucu")
         try:
                 komut, *args = update.message.text.split()
@@ -151,7 +156,8 @@ def adminekle(update: Update,context: CallbackContext) -> None:
                     pass
                 else:
                     print(arguman,"sss")
-                    admins.append(int(arguman))
+                    admindb.insert_one({"id":int(arguman)})
+
         except ValueError:
             update.message.reply_text("Geçersiz komut. Doğru format: /adminekle [id]")
 
@@ -159,23 +165,22 @@ def adminekle(update: Update,context: CallbackContext) -> None:
 
 
 def adminsil(update: Update,context: CallbackContext) -> None:
-    if update.message.from_user.id == int(kurucu):
+    if ownerdb.find_one({"id": update.message.from_user.id}):
         try:
                 komut, *args = update.message.text.split()
                 arguman = " ".join(args)
                 if arguman.strip():
                     pass
                 else:
-                    for admin in admins:
-                        if admin["id"] == int(arguman):
-                            admins.remove(admin)
+                    admindb.delete_one({"id":int(arguman)})
+
         except ValueError:
             update.message.reply_text("Geçersiz komut. Doğru format: /adminsil [id]")
 
 
 
 def talep(update: Update,context: CallbackContext) -> None:
-    if update.message.from_user.id in admins:
+    if admindb.find_one({"id": update.message.from_user.id}):
         print("id var")
     else:
         print("id yok")
