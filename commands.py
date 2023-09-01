@@ -35,7 +35,7 @@ def check_sikayetler(context: CallbackContext) -> None:
     
 def tekrar_mesaj(context: CallbackContext) -> None:
     try:  
-        kekec = "Selam dostum ben bir destek botuyum grupla yada üyelerle ilgili herhangi bir şikayet öneri ve talep için /sikayet mesajınız şeklinde istediğiniz öneri ve şikayeti yazabilirsiniz, daha detaylı bilgi için /yardım"
+        kekec = "Selam dostum ben bir destek botuyum grupla yada üyelerle ilgili herhangi bir şikayet öneri ve talep için /sikayet mesajınız şeklinde istediğiniz öneri ve şikayeti yazabilirsiniz, daha detaylı bilgi için /yardim"
         
         context.bot.send_message(chat_id="-1001554994271", text=kekec)
     except:
@@ -48,7 +48,7 @@ def yardim(update: Update, context: CallbackContext) -> None:
 
     /sikayet : Şikayet oluşturmak için kullanılır. Herkes tarafından kullanılabilir.
 
-    /sikayetal : Sadece yetkililer tarafından kullanılabilir. Bu komutla tüm bekleyen şikayetleri görüntüleyebilirsiniz. Eğer /sikayetal <id> şeklinde kullanırsanız, belirli bir şikayeti detaylı olarak görüntüleyebilirsiniz.
+    /sikayetal : Sadece yetkililer tarafından kullanılabilir. Bu komutla tüm bekleyen şikayetleri görüntüleyebilirsiniz. Komudun kullanımı /sikayetal <id> şeklindedir, belirli bir şikayeti detaylı olarak görüntüleyebilirsiniz.
 
     /sikayetkapat : Sadece yetkililer tarafından kullanılabilir. Bu komutla bir şikayeti kapatırsınız. Kapatılacak şikayetin <id> ve <mesaj> değerlerini belirtmelisiniz. <id>, kapatılacak şikayetin kimliği, <mesaj> ise kapatıldıktan sonra şikayeti yapan kişiye gösterilecek mesajdır.
 
@@ -136,7 +136,7 @@ def sikayet(update: Update,context: CallbackContext) -> None:
             "sikayetBildiri": sikayetBildiri
         }
     reporstdb.insert_one(şikayet)
-    
+    print("Yeni Şikayet")
 
 
     update.message.reply_text("Şikayetiniz başarıyla oluşturuldu")
@@ -155,7 +155,7 @@ def adminekle(update: Update,context: CallbackContext) -> None:
                     print("dada")
                     pass
                 else:
-                    print(arguman,"sss")
+                    update.message.reply_text("Admin Eklendi")
                     admindb.insert_one({"id":int(arguman)})
 
         except ValueError:
@@ -172,6 +172,7 @@ def adminsil(update: Update,context: CallbackContext) -> None:
                 if arguman.strip():
                     pass
                 else:
+                    update.message.reply_text("Admin Silindi")
                     admindb.delete_one({"id":int(arguman)})
 
         except ValueError:
@@ -203,3 +204,4 @@ def talep(update: Update,context: CallbackContext) -> None:
                             
         """.format(sikayet["id"],sikayet["gonderen"],sikayet["chatId"],sikayet["mesajId"],sikayet["sikayet"], sikayet["cevaplanma"], sikayet["sikayetBildiri"])
         context.bot.send_message(chat_id=update.message.chat_id ,text=kekec)
+        print("Talep Çekildi")

@@ -4,7 +4,7 @@ from commands import *
 
 
 # Bot tokeninizi buraya ekleyin
-TOKEN = "6009120642:AAEWVdBwNOs8SIT6hXVLyt1H11d5vsmTVHg"
+TOKEN = "6425561350:AAGr6caRiZyWA9QYlqxnqKspirvEArmmfmQ"
 
 
 # def echo(update: Update, context: CallbackContext) -> None:
@@ -23,7 +23,7 @@ def main():
     dispatcher.add_handler(CommandHandler("talep", talep))
     dispatcher.add_handler(CommandHandler("yardim", yardim))
     job_queue.run_repeating(check_sikayetler, interval=30, first=0)    
-    job_queue.run_repeating(tekrar_mesaj, interval=1800, first=0)    
+    job_queue.run_repeating(tekrar_mesaj, interval=3600, first=0)    
     # dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, echo))
 
     updater.start_polling()
